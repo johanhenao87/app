@@ -1,37 +1,47 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { TOAST_EVENT, type ToastPayload } from '../hooks/useToasts'
 
-type Toast = { id: string; type: 'success'|'error'|'info'; message: string }
-const BUS = typeof window !== 'undefined' ? window : ({} as any)
-const EVT = 'app:toast'
+const DURATION = 3200
 
 export function Toaster() {
-  const [list, setList] = useState<Toast[]>([])
+  const [toasts, setToasts] = useState<ToastPayload[]>([])
 
   useEffect(() => {
-    function onToast(e: any) {
-      const t: Toast = e.detail
-      setList(prev => [...prev, t])
+    const bus = typeof window === 'undefined' ? null : window
+    if (!bus) return
+
+    function onToast(event: Event) {
+      const detail = (event as CustomEvent<ToastPayload>).detail
+      if (!detail) return
+      setToasts(prev => [...prev, detail])
       setTimeout(() => {
-        setList(prev => prev.filter(x => x.id !== t.id))
-      }, 3200)
+        setToasts(prev => prev.filter(item => item.id !== detail.id))
+      }, DURATION)
     }
-    BUS.addEventListener?.(EVT, onToast)
-    return () => BUS.removeEventListener?.(EVT, onToast)
+
+    bus.addEventListener(TOAST_EVENT, onToast as EventListener)
+    return () => bus.removeEventListener(TOAST_EVENT, onToast as EventListener)
   }, [])
 
+  if (toasts.length === 0) return null
+
   return (
-    <div className="fixed bottom-3 right-3 z-[100] space-y-2">
-      {list.map(t => (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-full max-w-sm flex-col gap-2 sm:right-6">
+      {toasts.map(toast => (
         <div
-          key={t.id}
-          className={`min-w-[260px] max-w-[380px] rounded-xl px-3 py-2 shadow-lg border text-sm
-            ${t.type==='success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
-               t.type==='error' ? 'bg-rose-50 border-rose-200 text-rose-900' :
-                                  'bg-slate-50 border-slate-200 text-slate-900'}`}
+          key={toast.id}
+          role="status"
+          className={`pointer-events-auto rounded-xl border px-3 py-2 text-sm shadow-lg transition-all ${
+            toast.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : toast.type === 'error'
+                ? 'border-rose-200 bg-rose-50 text-rose-900'
+                : 'border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100'
+          }`}
         >
-          {t.message}
+          {toast.message}
         </div>
       ))}
     </div>

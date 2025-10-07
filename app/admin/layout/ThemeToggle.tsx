@@ -1,48 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
-function applyTheme(next: 'light' | 'dark') {
-  const root = document.documentElement
-  if (next === 'dark') root.classList.add('dark')
-  else root.classList.remove('dark')
-  localStorage.setItem('theme', next)
-}
-
-function getInitialTheme(): 'light' | 'dark' {
-  try {
-    const stored = localStorage.getItem('theme') as 'light' | 'dark' | null
-    if (stored === 'light' || stored === 'dark') return stored
-    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    return prefersDark ? 'dark' : 'light'
-  } catch { return 'light' }
-}
+import { useTheme } from '../hooks/useTheme'
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
-
-  useEffect(() => {
-    const initial = getInitialTheme()
-    setTheme(initial)
-    applyTheme(initial)
-  }, [])
-
-  const toggle = () => {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    setTheme(next)
-    applyTheme(next)
-  }
+  const { theme, toggle } = useTheme()
+  const isDark = theme === 'dark'
 
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-pressed={theme === 'dark'}
-      title={theme === 'dark' ? 'Cambiar a claro' : 'Cambiar a oscuro'}
-      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
+      aria-pressed={isDark}
+      aria-label={isDark ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'}
+      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
     >
-      <span className="inline-block h-4 w-4">{theme === 'dark' ? '🌙' : '☀️'}</span>
-      <span className="hidden sm:inline">{theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+      <span className="text-lg" aria-hidden>
+        {isDark ? '🌙' : '☀️'}
+      </span>
+      <span className="hidden sm:inline">{isDark ? 'Oscuro' : 'Claro'}</span>
     </button>
   )
 }

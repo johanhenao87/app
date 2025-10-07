@@ -2,17 +2,43 @@
 
 import { useCallback } from 'react'
 
-const BUS = typeof window !== 'undefined' ? window : ({} as any)
-const EVT = 'app:toast'
+export type ToastKind = 'success' | 'error' | 'info'
+export type ToastPayload = {
+  id: string
+  type: ToastKind
+  message: string
+}
 
-function push(type: 'success'|'error'|'info', message: string) {
-  const id = Math.random().toString(36).slice(2)
-  BUS.dispatchEvent?.(new CustomEvent(EVT, { detail: { id, type, message }}))
+export const TOAST_EVENT = 'admin:toast'
+
+function getBus(): Window | null {
+  if (typeof window === 'undefined') return null
+  return window
+}
+
+function emitToast(payload: ToastPayload) {
+  const bus = getBus()
+  if (!bus) return
+  bus.dispatchEvent(new CustomEvent(TOAST_EVENT, { detail: payload }))
+}
+
+function createPayload(type: ToastKind, message: string): ToastPayload {
+  return {
+    id: Math.random().toString(36).slice(2),
+    type,
+    message,
+  }
 }
 
 export function useToasts() {
-  const success = useCallback((m: string)=> push('success', m), [])
-  const error   = useCallback((m: string)=> push('error', m), [])
-  const info    = useCallback((m: string)=> push('info', m), [])
-  return { success, error, info }
+  const toast = useCallback((type: ToastKind, message: string) => emitToast(createPayload(type, message)), [])
+  const success = useCallback((message: string) => toast('success', message), [toast])
+  const error = useCallback((message: string) => toast('error', message), [toast])
+  const info = useCallback((message: string) => toast('info', message), [toast])
+
+  return { toast, success, error, info }
+}
+
+export function showToast(type: ToastKind, message: string) {
+  emitToast(createPayload(type, message))
 }
