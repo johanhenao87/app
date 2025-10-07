@@ -2,34 +2,55 @@
 
 import React from 'react'
 
-type BtnProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { as?: 'button' }
-const base = 'px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition'
+export type ButtonVariant =
+  | 'primary'
+  | 'success'
+  | 'sky'
+  | 'danger'
+  | 'secondary'
+  | 'icon'
 
-export function PrimaryButton(props: BtnProps) {
-  const { className, ...rest } = props
-  return <button className={`${base} bg-indigo-600 hover:bg-indigo-700 text-white ${className||''}`} {...rest} />
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: Exclude<ButtonVariant, 'icon'>
 }
-export function SuccessButton(props: BtnProps) {
-  const { className, ...rest } = props
-  return <button className={`${base} bg-emerald-600 hover:bg-emerald-700 text-white ${className||''}`} {...rest} />
+
+const base = 'inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 dark:focus-visible:ring-offset-slate-950'
+
+function compose(variant: ButtonVariant, className?: string) {
+  const styles: Record<ButtonVariant, string> = {
+    primary: 'bg-indigo-600 text-white hover:bg-indigo-700',
+    success: 'bg-emerald-600 text-white hover:bg-emerald-700',
+    sky: 'bg-sky-600 text-white hover:bg-sky-700',
+    danger: 'bg-rose-600 text-white hover:bg-rose-700',
+    secondary:
+      'border border-slate-200 bg-white text-slate-800 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+    icon:
+      'h-10 w-10 border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800',
+  }
+  const extra = className ? ` ${className}` : ''
+  return `${base} ${styles[variant]}${extra}`.trim()
 }
-export function SkyButton(props: BtnProps) {
-  const { className, ...rest } = props
-  return <button className={`${base} bg-sky-600 hover:bg-sky-700 text-white ${className||''}`} {...rest} />
+
+export function PrimaryButton({ className, ...rest }: ButtonProps) {
+  return <button className={compose('primary', className)} {...rest} />
 }
-export function DangerButton(props: BtnProps) {
-  const { className, ...rest } = props
-  return <button className={`${base} bg-rose-600 hover:bg-rose-700 text-white ${className||''}`} {...rest} />
+
+export function SuccessButton({ className, ...rest }: ButtonProps) {
+  return <button className={compose('success', className)} {...rest} />
 }
-export function SecondaryButton(props: BtnProps) {
-  const { className, ...rest } = props
-  return <button className={`${base} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 ${className||''}`} {...rest} />
+
+export function SkyButton({ className, ...rest }: ButtonProps) {
+  return <button className={compose('sky', className)} {...rest} />
 }
-export function IconButton({ className, ...rest }: BtnProps) {
-  return (
-    <button
-      className={`w-10 h-10 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-lg ${className||''}`}
-      {...rest}
-    />
-  )
+
+export function DangerButton({ className, ...rest }: ButtonProps) {
+  return <button className={compose('danger', className)} {...rest} />
+}
+
+export function SecondaryButton({ className, ...rest }: ButtonProps) {
+  return <button className={compose('secondary', className)} {...rest} />
+}
+
+export function IconButton({ className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return <button className={compose('icon', className)} {...rest} />
 }

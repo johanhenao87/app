@@ -3,21 +3,27 @@
 import React from 'react'
 import ThemeToggle from './ThemeToggle'
 
-type Props = {
+export type AdminTopbarProps = {
   title?: string
   right?: React.ReactNode
   className?: string
 }
 
-export default function AdminTopbar({ title = 'Panel administrativo', right, className }: Props) {
+export default function AdminTopbar({
+  title = 'Panel administrativo',
+  right,
+  className = '',
+}: AdminTopbarProps) {
   return (
-    <div className={`sticky top-0 z-40 bg-white dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 py-2 flex items-center gap-2 ${className||''}`}>
-      <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">{title}</div>
-      <div className="ml-auto flex items-center gap-2">
-        {right}
-        {/* Fallback: si no pasan right, mostramos el ThemeToggle */}
-        {!right && <ThemeToggle />}
+    <header
+      className={`sticky top-0 z-40 flex items-center gap-2 border-b border-slate-200 bg-white/90 px-3 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-950/70 sm:px-4 ${className}`.trim()}
+    >
+      <div className="truncate text-base font-semibold text-slate-900 dark:text-slate-100">
+        {title}
       </div>
-    </div>
+      <div className="ml-auto flex items-center gap-2">
+        {right ?? <ThemeToggle />}
+      </div>
+    </header>
   )
 }
