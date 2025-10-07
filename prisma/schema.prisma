@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model caja_rapida {
+  id           Int          @id @default(autoincrement())
+  conductor_id Int?
+  activo       Boolean?     @default(true)
+  motivo       String?
+  conductores  conductores? @relation(fields: [conductor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model calendario {
+  fecha      DateTime @id @db.Date
+  habilitado Boolean? @default(true)
+  motivo     String?
+}
+
+model conductores {
+  id             Int           @id @default(autoincrement())
+  cedula         String        @unique @db.VarChar(20)
+  nombre         String        @db.VarChar(100)
+  telefono       String?       @db.VarChar(20)
+  correo         String?       @db.VarChar(100)
+  password_hash  String
+  fecha_registro DateTime?     @default(now()) @db.Timestamp(6)
+  tipo_vehiculo  String?       @db.VarChar(10)
+  caja_rapida    caja_rapida[]
+  reset_codes    ResetCodes[]
+  turnos         turnos[]
+}
+
+/// Tabla principal de turnos
+model turnos {
+  id                  Int       @id @default(autoincrement())
+  conductor_id        Int?
+  fecha               DateTime  @db.Date
+  hora                DateTime  @db.Time(6)
+  tipo_turno          String?   @db.VarChar(20)
+  estado              String?   @default("pendiente") @db.VarChar(20)
+  creado              DateTime? @default(now()) @db.Timestamp(6)
+  operacion           String?   @db.VarChar(20) // "cargue" | "descargue"
+  tipo_vehiculo_turno String?   @db.VarChar(10) // snapshot del tipo vehículo usado en este turno
+  placa               String?   @db.VarChar(6)  // placa del vehículo
+
+  // 🔹 Nuevos campos para superpoderes admin
+  prioridad    Int?
+  orden_dia    Int?
+  motivo_admin String?
+  version      Int      @default(1)
+
+  // 🔹 Relaciones
+  auditoria_turnos AuditoriaTurnos[]
+  notificaciones   Notificacion[]
+  conductores      conductores? @relation(fields: [conductor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  // 🔹 Restricciones
+  @@unique([conductor_id, fecha, hora])
+  @@index([fecha, hora])
+  @@index([fecha, orden_dia])
+}
+
+model AuditoriaTurnos {
+  id           Int       @id @default(autoincrement())
+  turno_id     Int
+  accion       String    @db.VarChar(50)
+  fecha_hora   DateTime? @default(now()) @db.Timestamp(6)
+  usuario      String?   @db.VarChar(100)
+  motivo_admin String?   @db.VarChar(200)
+  antes        Json?
+  despues      Json?
+
+  turnos turnos @relation(fields: [turno_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("auditoria_turnos")
+}
+
+model ResetCodes {
+  id           Int         @id @default(autoincrement())
+  conductor_id Int
+  code         String      @db.VarChar(6)
+  expires_at   DateTime    @db.Timestamp(6)
+  used         Boolean?    @default(false)
+  created_at   DateTime?   @default(now()) @db.Timestamp(6)
+  conductores  conductores @relation(fields: [conductor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("reset_codes")
+}
+
+/////////////////////////////////////////////////////////////
+// NUEVAS TABLAS (configurables desde panel de control)
+/////////////////////////////////////////////////////////////
+
+/// Define horarios y cupos configurables por tipo de turno
+model ParametrosTurnos {
+  id          Int     @id @default(autoincrement())
+  tipo_turno  String  @db.VarChar(20) // "normal" | "caja_rapida"
+  hora        String  @db.VarChar(5) // HH:mm
+  cupo_maximo Int
+  activo      Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tipo_turno, hora]) // evita duplicados de hora por tipo
+}
+
+/// Permite bloquear un rango de fechas (días, semanas, meses)
+model BloqueosFechas {
+  id           Int      @id @default(autoincrement())
+  fecha_inicio DateTime
+  fecha_fin    DateTime
+  motivo       String?  @db.VarChar(100)
+  activo       Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// KV simple para parámetros generales (clave/valor)
+model reglas_agendamiento {
+  id          Int     @id @default(autoincrement())
+  nombre      String? @unique @db.VarChar(50)
+  valor       Int?
+  descripcion String?
+}
+
+model parametros_agendamiento {
+  id          Int     @id @default(autoincrement())
+  clave       String  @unique @db.VarChar(50)
+  valor       String?
+  descripcion String?
+}
+
+/////////////////////////////////////////////////////////////
+// NUEVA TABLA PARA NOTIFICACIONES
+/////////////////////////////////////////////////////////////
+
+model Notificacion {
+  id        Int       @id @default(autoincrement())
+  turno_id  Int
+  tipo      String    @db.VarChar(20) // 'reprogramado' | 'cancelado' | 'prioridad' | 'rollover'
+  canal     String    @db.VarChar(20) // 'sms' | 'whatsapp' | 'email'
+  payload   Json
+  estado    String    @default("pendiente") @db.VarChar(20) // 'pendiente' | 'enviado' | 'fallo'
+  intentos  Int       @default(0)
+  lastError String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  turnos turnos @relation(fields: [turno_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
